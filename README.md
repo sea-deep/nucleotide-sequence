@@ -1,8 +1,24 @@
 # nucleotide-sequence 🧬
 
+[![NPM Version](https://img.shields.io/npm/v/nucleotide-sequence.svg)](https://www.npmjs.com/package/nucleotide-sequence)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Hello! **nucleotide-sequence** is a little javascript library for Node.js and the Browser. It's meant to make sequence manipulation, translation, and alignment a bit easier and faster by using `Uint8Array`s under the hood. 
 
 I originally wrote something like this years ago, and decided to modernize it for 2026. Hopefully you find it useful for your biology pipelines!
+
+---
+
+## 📑 Table of Contents
+- [Installation](#-installation)
+- [Why Use This? (The Memory Problem)](#-why-use-this-the-memory-problem)
+- [API Reference](#-api-reference)
+  - [Sequence Engine (`Seq`)](#sequence-engine-seq)
+  - [Translation Engine](#translation-engine)
+  - [Alignment Mapping (`MatchMap`)](#alignment-mapping-matchmap)
+- [License](#-license)
+
+---
 
 ## 📦 Installation
 
@@ -10,38 +26,60 @@ I originally wrote something like this years ago, and decided to modernize it fo
 npm install nucleotide-sequence
 ```
 
-## 📖 Basic Usage
+For browser environments (ESM):
+```javascript
+import { Seq, MatchMap, Translation, ZeroWorker } from 'nucleotide-sequence';
+```
 
-You can create sequences, manipulate them, and calculate basic properties.
+---
+
+## 🤔 Why Use This? (The Memory Problem)
+
+When dealing with gigabyte-scale genomic data in standard JavaScript, developers run into a catastrophic bottleneck: **Memory Bloat**.
+
+Standard strings in JavaScript are UTF-16, meaning a 3GB genome takes up 6GB of RAM. If you try to pass that string to a Web Worker for background processing, the browser executes the **Structured Clone Algorithm**, copying it again. You instantly hit 12GB of RAM, and the Chrome tab crashes with an **"Aw, Snap! Out of Memory"** error.
+
+**nucleotide-sequence** solves this by storing all biological data exclusively in flat, binary `Uint8Array` memory structures. 
+
+---
+
+## 📚 API Reference
+
+### Sequence Engine (`Seq`)
+
+The `Seq` class is the foundation of the library.
 
 ```typescript
 import { Seq } from 'nucleotide-sequence';
 
-// Load a sequence
 const mySeq = new Seq('DNA').read('ATGCCTGGATGC');
 
-// Basic manipulation
 const comp = mySeq.complement();
 const rComp = mySeq.reverseComplement();
-const gc = mySeq.gcContent(); // returns 0.5 (50%)
-
-console.log(rComp.sequence()); // Prints the sequence string
+const gc = mySeq.gcContent(); // 0.5 (50%)
+const rna = mySeq.transcribe();
 ```
 
-## 🧬 Translation
+**Advanced Methods:**
+- `.readFASTQ(fastqData)`: Parses raw sequencer output while intelligently discarding bulky Phred quality scores.
+- `.splice(start, length)`: Extracts sub-regions instantly using underlying ArrayBuffer slices (O(1) memory).
+- `.kmers(k)`: Extracts overlapping K-mers.
+- `.findCRISPRTargets(pam = 'NGG')`: Scans the sequence for CRISPR Cas9 targets.
 
-You can easily translate sequences into amino acids using standard codon tables.
+### Translation Engine
+
+Translate sequences into amino acids using standard biological codon tables.
 
 ```typescript
 import { Translation } from 'nucleotide-sequence';
 
 const protein = new Translation(mySeq).translate();
-console.log(protein.sequence());
+console.log(protein.sequence()); // Prints Amino Acid sequence
 ```
 
-## 🔍 Alignment (MatchMap)
+### Alignment Mapping (`MatchMap`)
 
-If you need to find where a small sequence aligns within a larger sequence, you can use `MatchMap`. It handles wildcard matches (like `N`) as well.
+Provides an exhaustive, sliding-window bitwise alignment engine to map small query sequences to massive reference genomes, fully supporting degenerate IUPAC nucleotides (like `N`).
 
 ```typescript
 import { MatchMap } from 'nucleotide-sequence';
@@ -54,34 +92,7 @@ console.log(result.position); // Index where it best aligns
 console.log(result.matches); // Number of matched nucleotides
 ```
 
-## 🧵 Multithreading (ZeroWorker)
-
-Genomic sequences can be quite large. If you are running an alignment in the browser and don't want to freeze the UI, you can offload it to a background thread using `ZeroWorker`. It tries to use `SharedArrayBuffer` or Transferable objects so it doesn't duplicate memory!
-
-```typescript
-import { ZeroWorker } from 'nucleotide-sequence';
-
-const worker = new ZeroWorker();
-const asyncResult = await worker.align(query, massiveGenome);
-```
-
-## 📚 Quick API Reference
-
-### `Seq` Class
-- **`new Seq(type)`**: Create a DNA or RNA sequence.
-- **`.read(string)`**, **`.readFASTA(string)`**, **`.readFASTQ(string)`**: Load data.
-- **`.sequence()`**: Get the string representation.
-- **`.complement()`**, **`.reverseComplement()`**: Generate complements.
-- **`.gcContent()`**: Calculate GC percentage.
-- **`.splice(start, length)`**: Extract sub-regions instantly without copying memory.
-- **`.kmers(k)`**: Extract all overlapping K-mers.
-- **`.findCRISPRTargets(pam = 'NGG')`**: Scan for Cas9 PAM sites.
-
-### `Translation` Engine
-- **`new Translation(seq).translate()`**: Convert DNA/RNA to Amino Acids.
-
-### `MatchMap`
-- **`new MatchMap(query, reference).initialize().best()`**: Find the absolute best alignment position of a query inside a reference genome.
+---
 
 ## 🐛 Feedback
 
