@@ -1,8 +1,8 @@
 # nucleotide-sequence 🧬
 
-**nucleotide-sequence** is a modern, hyper-optimized Bioinformatics library written in TypeScript that provides sequence manipulation, analysis, and bitwise alignment mapping for Node.js and the browser.
+**nucleotide-sequence** is a high-performance bioinformatics library written in TypeScript, providing sequence manipulation, analysis, and bitwise alignment mapping for Node.js and the browser.
 
-Built from the ground up to handle massive genomic datasets, it utilizes zero-copy `Uint8Array` memory structures to operate at speeds vastly superior to legacy string-based approaches. It is designed to be the modern standard for 2026 bioinformatics pipelines, featuring built-in support for FASTA/FASTQ parsing, CRISPR PAM scanning, K-mer tokenization, and exhaustive degenerate nucleotide alignment.
+Built to handle large-scale genomic datasets, it utilizes `Uint8Array` memory structures to minimize overhead compared to traditional string-based approaches. The library features built-in support for FASTA/FASTQ parsing, CRISPR PAM scanning, K-mer extraction, and exhaustive degenerate nucleotide alignment.
 
 ## 🚀 Features
 
@@ -149,12 +149,6 @@ Returned by the `MatchMap` queries.
 - `.alignment()`: Returns a new `Seq` containing the exactly matched portion of the reference sequence.
 
 ---
-
-## 🧪 Testing
-The library includes a comprehensive Vitest suite guaranteeing mathematical accuracy across all biological functions.
-```bash
-npm run test
-```
 
 ## 📄 License
 MIT License
