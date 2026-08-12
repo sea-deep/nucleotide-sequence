@@ -1,0 +1,39 @@
+{
+  "name": "nucleotide-sequence",
+  "version": "1.0.0",
+  "description": "A modern, highly optimized bioinformatics toolkit for Node and the browser",
+  "main": "./dist/nucleotide-sequence.umd.cjs",
+  "module": "./dist/nucleotide-sequence.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/nucleotide-sequence.js",
+      "require": "./dist/nucleotide-sequence.umd.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "bioinformatics",
+    "sequence",
+    "dna",
+    "rna",
+    "alignment"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
+  }
+}
