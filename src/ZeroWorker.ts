@@ -3,40 +3,63 @@ import { MatchResult } from './MatchMap';
 
 const workerCode = `
 self.onmessage = function(e) {
-  const query = e.data.query;
-  const reference = e.data.reference;
+  const { type, query, reference, pam, k } = e.data;
   
-  let bestPosition = -1;
-  let maxMatches = -1;
-
-  for (let i = 0; i <= reference.length - query.length; i++) {
-    let matches = 0;
-    for (let j = 0; j < query.length; j++) {
-      const q = query[j];
-      const r = reference[i + j];
-      if (q === r || q === 78 /* N */ || r === 78) {
-        matches++;
+  if (type === 'align') {
+    let bestPosition = -1;
+    let maxMatches = -1;
+    for (let i = 0; i <= reference.length - query.length; i++) {
+      let matches = 0;
+      for (let j = 0; j < query.length; j++) {
+        const q = query[j];
+        const r = reference[i + j];
+        if (q === r || q === 78 || r === 78) matches++;
       }
+      if (matches > maxMatches) {
+        maxMatches = matches;
+        bestPosition = i;
+      }
+      if (matches === query.length) break;
     }
-    if (matches > maxMatches) {
-      maxMatches = matches;
-      bestPosition = i;
+    self.postMessage({ type: 'align', position: bestPosition, matches: maxMatches });
+  } 
+  
+  else if (type === 'crispr') {
+    const targets = [];
+    const pamLen = pam.length;
+    for (let i = 0; i <= reference.length - pamLen; i++) {
+      let match = true;
+      for (let p = 0; p < pamLen; p++) {
+        const pCode = pam.charCodeAt(p);
+        const rCode = reference[i + p];
+        if (pCode === 78) continue; // N
+        if (pCode === 82 && (rCode === 65 || rCode === 71)) continue; // R
+        if (pCode !== rCode) { match = false; break; }
+      }
+      if (match) targets.push(i);
     }
-    if (matches === query.length) break;
+    self.postMessage({ type: 'crispr', targets });
   }
-
-  self.postMessage({ position: bestPosition, matches: maxMatches });
+  
+  else if (type === 'kmers') {
+    const kMers = [];
+    for (let i = 0; i <= reference.length - k; i++) {
+      const slice = new Uint8Array(k);
+      for (let j = 0; j < k; j++) slice[j] = reference[i + j];
+      kMers.push(String.fromCharCode.apply(null, slice));
+    }
+    self.postMessage({ type: 'kmers', kmers: kMers });
+  }
 };
 `;
 
 /**
- * A highly optimized, zero-dependency Web Worker proxy for genomic alignments.
- * Automatically handles SharedArrayBuffer and Transferable Object routing
- * to guarantee zero-copy memory performance.
+ * A highly optimized, zero-dependency Web Worker proxy for genomic algorithms.
  */
 export class ZeroWorker {
   private worker: Worker | null = null;
   private isSupported: boolean = false;
+  private messageId = 0;
 
   constructor() {
     if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && typeof URL !== 'undefined') {
@@ -46,67 +69,68 @@ export class ZeroWorker {
     }
   }
 
-  /**
-   * Run the exhaustive MatchMap alignment in a background thread.
-   * 
-   * @param querySeq The sequence to search for
-   * @param refSeq The massive reference genome to search inside
-   * @param transferOwnership If true, physically moves the memory to the worker using Transferable Objects. 
-   *                          WARNING: This detaches the memory from the main thread, making the original Seq objects unusable!
-   *                          If using SharedArrayBuffer, this flag is ignored (memory is shared natively).
-   */
+  private postAndWait(message: any, transferables?: Transferable[]): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.worker!.onmessage = (e) => resolve(e.data);
+      this.worker!.onerror = (e) => reject(e);
+      if (transferables) {
+        this.worker!.postMessage(message, transferables);
+      } else {
+        this.worker!.postMessage(message);
+      }
+    });
+  }
+
   public async align(querySeq: Seq, refSeq: Seq, transferOwnership: boolean = false): Promise<MatchResult> {
     if (!this.isSupported || !this.worker) {
-      // Graceful fallback for environments without Web Workers (e.g. standard Node.js without polyfills)
       const { MatchMap } = await import('./MatchMap');
       const map = new MatchMap(querySeq, refSeq).initialize();
       return map.best()!;
     }
 
-    return new Promise((resolve, reject) => {
-      const qArray = querySeq.raw();
-      const rArray = refSeq.raw();
+    const qArray = querySeq.raw();
+    const rArray = refSeq.raw();
+    const isShared = typeof SharedArrayBuffer !== 'undefined' && (qArray.buffer instanceof SharedArrayBuffer || rArray.buffer instanceof SharedArrayBuffer);
 
-      this.worker!.onmessage = (e) => {
-        resolve({
-          position: e.data.position,
-          matches: e.data.matches,
-          alignment: () => {
-            // Note: If memory was transferred and not shared, creating an alignment from refSeq will fail 
-            // because the buffer is detached. We assume if they transfer, they don't need the original sequence.
-            try {
-              const alignedArray = rArray.slice(e.data.position, e.data.position + querySeq.length());
-              const alignedSeq = new Seq(refSeq.type());
-              // Bypass access modifiers for performance slice
-              (alignedSeq as any)['data'] = alignedArray;
-              return alignedSeq;
-            } catch (err) {
-              throw new Error('Cannot extract alignment: memory was transferred and detached. Use SharedArrayBuffer for zero-copy memory sharing.');
-            }
-          }
-        });
-      };
+    let data;
+    if (isShared) {
+      data = await this.postAndWait({ type: 'align', query: qArray, reference: rArray });
+    } else if (transferOwnership) {
+      data = await this.postAndWait({ type: 'align', query: qArray, reference: rArray }, [qArray.buffer, rArray.buffer]);
+    } else {
+      data = await this.postAndWait({ type: 'align', query: qArray, reference: rArray });
+    }
 
-      this.worker!.onerror = (e) => {
-        reject(e);
-      };
-
-      const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
-      const isShared = hasSharedArrayBuffer && (qArray.buffer instanceof SharedArrayBuffer || rArray.buffer instanceof SharedArrayBuffer);
-
-      if (isShared) {
-        // Zero-Copy: Shared Memory (instant, no detachment)
-        this.worker!.postMessage({ query: qArray, reference: rArray });
-      } else if (transferOwnership) {
-        // Zero-Copy: Transferable Memory (instant, but detaches main thread memory)
-        this.worker!.postMessage({ query: qArray, reference: rArray }, [qArray.buffer, rArray.buffer]);
-      } else {
-        // Structured Clone (copies memory - safe but high memory overhead)
-        this.worker!.postMessage({ query: qArray, reference: rArray });
+    return {
+      position: data.position,
+      matches: data.matches,
+      alignment: () => {
+        try {
+          const alignedArray = rArray.slice(data.position, data.position + querySeq.length());
+          const alignedSeq = new Seq(refSeq.type());
+          (alignedSeq as any)['data'] = alignedArray;
+          return alignedSeq;
+        } catch (err) {
+          throw new Error('Memory detached.');
+        }
       }
-    });
+    };
   }
-  
+
+  public async findCRISPRTargets(refSeq: Seq, pam: string = 'NGG'): Promise<number[]> {
+    if (!this.isSupported || !this.worker) return refSeq.findCRISPRTargets(pam);
+    const rArray = refSeq.raw();
+    const data = await this.postAndWait({ type: 'crispr', reference: rArray, pam });
+    return data.targets;
+  }
+
+  public async kmers(refSeq: Seq, k: number): Promise<string[]> {
+    if (!this.isSupported || !this.worker) return refSeq.kmers(k);
+    const rArray = refSeq.raw();
+    const data = await this.postAndWait({ type: 'kmers', reference: rArray, k });
+    return data.kmers;
+  }
+
   public terminate() {
     if (this.worker) {
       this.worker.terminate();

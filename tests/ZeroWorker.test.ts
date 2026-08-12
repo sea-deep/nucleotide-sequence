@@ -44,4 +44,18 @@ describe('ZeroWorker Multithreading Engine', () => {
     expect(result.position).toBe(3);
     expect(result.matches).toBe(4);
   });
+
+  it('should compute kmers via worker fallback', async () => {
+    worker = new ZeroWorker();
+    const ref = new Seq().read('ATGC');
+    const kmers = await worker.kmers(ref, 2);
+    expect(kmers).toEqual(['AT', 'TG', 'GC']);
+  });
+
+  it('should compute CRISPR targets via worker fallback', async () => {
+    worker = new ZeroWorker();
+    const ref = new Seq().read('ATGCTGG');
+    const targets = await worker.findCRISPRTargets(ref, 'TGG');
+    expect(targets).toEqual([4]);
+  });
 });
