@@ -286,4 +286,47 @@ export class Seq {
     }
     return targets;
   }
+
+  /**
+   * Calculates the GC content (percentage of Guanine and Cytosine bases) in the sequence.
+   * Returns a value between 0.0 and 1.0.
+   */
+  public gcContent(): number {
+    let gcCount = 0;
+    const len = this.data.length;
+    for (let i = 0; i < len; i++) {
+      const b = this.data[i];
+      if (b === 71 /* G */ || b === 67 /* C */) {
+        gcCount++;
+      }
+    }
+    return len === 0 ? 0 : gcCount / len;
+  }
+
+  /**
+   * Generates the reverse complement of the sequence.
+   * Returns a new Seq object.
+   */
+  public reverseComplement(): Seq {
+    const len = this.data.length;
+    const revCompData = new Uint8Array(len);
+    
+    for (let i = 0; i < len; i++) {
+      const b = this.data[len - 1 - i];
+      let comp = b;
+      
+      // A (65) <-> T (84) / U (85)
+      // C (67) <-> G (71)
+      if (b === 65) comp = this.seqType === 'DNA' ? 84 : 85;
+      else if (b === 84 || b === 85) comp = 65;
+      else if (b === 67) comp = 71;
+      else if (b === 71) comp = 67;
+      
+      revCompData[i] = comp;
+    }
+
+    const revSeq = new Seq(this.seqType);
+    revSeq['data'] = revCompData;
+    return revSeq;
+  }
 }
