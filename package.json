@@ -1,7 +1,7 @@
 {
   "name": "nucleotide-sequence",
   "version": "1.0.1",
-  "description": "A modern, highly optimized bioinformatics toolkit for Node and the browser",
+  "description": "A lightweight and modern bioinformatics toolkit library for Node and the browser",
   "main": "./dist/nucleotide-sequence.umd.cjs",
   "module": "./dist/nucleotide-sequence.js",
   "types": "./dist/index.d.ts",
