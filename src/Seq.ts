@@ -317,7 +317,7 @@ export class Seq {
       
       // A (65) <-> T (84) / U (85)
       // C (67) <-> G (71)
-      if (b === 65) comp = this.seqType === 'DNA' ? 84 : 85;
+      if (b === 65) comp = this.type === 'DNA' ? 84 : 85;
       else if (b === 84 || b === 85) comp = 65;
       else if (b === 67) comp = 71;
       else if (b === 71) comp = 67;
@@ -325,7 +325,7 @@ export class Seq {
       revCompData[i] = comp;
     }
 
-    const revSeq = new Seq(this.seqType);
+    const revSeq = new Seq(this.type);
     revSeq['data'] = revCompData;
     return revSeq;
   }
