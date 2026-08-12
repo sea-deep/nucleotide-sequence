@@ -1,11 +1,24 @@
 name: Publish Package
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+
   publish-npm:
+    needs: create-release
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -20,8 +33,11 @@ jobs:
       - run: npm run build
       - name: Publish to NPM with Provenance
         run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-gpr:
+    needs: create-release
     runs-on: ubuntu-latest
     permissions:
       contents: read
