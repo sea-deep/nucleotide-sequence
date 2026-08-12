@@ -1,17 +1,13 @@
 # nucleotide-sequence 🧬
 
+[![NPM Version](https://img.shields.io/npm/v/nucleotide-sequence.svg)](https://www.npmjs.com/package/nucleotide-sequence)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **nucleotide-sequence** is a high-performance bioinformatics library written in TypeScript, providing sequence manipulation, analysis, and bitwise alignment mapping for Node.js and the browser.
 
 Built to handle large-scale genomic datasets, it utilizes `Uint8Array` memory structures to minimize overhead compared to traditional string-based approaches. The library features built-in support for FASTA/FASTQ parsing, CRISPR PAM scanning, K-mer extraction, and exhaustive degenerate nucleotide alignment.
 
-## 🚀 Features
 
-- **Blazing Fast**: Uses Typed Arrays (`Uint8Array`) to minimize memory footprint and garbage collection overhead.
-- **MatchMap Algorithm**: Exhaustively scans genomes using an optimized sliding window, running at millions of nucleotide comparisons per second.
-- **Modern Standards**: Seamlessly extract **K-mers**, parse raw **FASTQ** sequencer outputs, and locate **CRISPR** editable targets (e.g. `NGG`).
-- **Translation Engine**: Instantly translate DNA/RNA into Amino Acids, or scan all 6 reading frames for hidden **Open Reading Frames (ORFs)**.
-- **Degenerate Nucleotides**: Full support for standard IUPAC codes (`N`, `R`, `Y`, `W`, `S`, etc.).
-- **Zero Dependencies**: A lightweight, standalone library built for the modern web and server.
 
 ## 📦 Installation
 

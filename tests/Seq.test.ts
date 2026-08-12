@@ -15,6 +15,17 @@ describe('Seq Class', () => {
     expect(seq.sequence()).toBe('ATGCTA');
   });
 
+  it('should compute GC content correctly', () => {
+    const seq = new Seq().read('GCGCATAT');
+    expect(seq.gcContent()).toBe(0.5); // 4 GC out of 8
+  });
+
+  it('should generate reverse complement correctly', () => {
+    const seq = new Seq().read('ATGC');
+    const rc = seq.reverseComplement();
+    expect(rc.sequence()).toBe('GCAT');
+  });
+
   it('should compute complementary DNA sequence correctly', () => {
     const seq = new Seq('DNA').read('ATGC');
     const comp = seq.complement();
