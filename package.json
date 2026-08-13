@@ -1,7 +1,7 @@
 {
   "name": "nucleotide-sequence",
   "version": "1.1.8",
-  "description": "A lightweight and modern bioinformatics toolkit library for Node and the browser",
+  "description": "A JavaScript/TypeScript library for manipulating and analyzing DNA and RNA sequences.",
   "main": "./dist/nucleotide-sequence.umd.cjs",
   "module": "./dist/nucleotide-sequence.js",
   "types": "./dist/index.d.ts",
