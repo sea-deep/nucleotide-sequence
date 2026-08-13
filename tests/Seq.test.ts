@@ -121,7 +121,7 @@ describe('Seq Class', () => {
 
   it('should correctly calculate molecular weight', () => {
     const seq = new Seq().read('A');
-    expect(seq.molecularWeight()).toBe(313.2);
+    expect(seq.molecularWeight()).toBeCloseTo(251.25, 2);
   });
 
   it('should splice sequences correctly', () => {
@@ -167,5 +167,20 @@ describe('Seq Class', () => {
       expect(seqStr[pos + 1]).toBe('G');
       expect(seqStr[pos + 2]).toBe('G');
     }
+  });
+
+  it('should calculate precise molecular weight using standard IDT constants', () => {
+    // ATCG residues: A(313.21) + T(304.20) + C(289.18) + G(329.21) = 1235.8
+    const seq = new Seq().read('ATCG');
+    
+    // Standard linear synthetic oligo (5'-OH, 3'-OH) 
+    // Expect: 1235.8 - 61.96 = 1173.84
+    const stdWeight = seq.molecularWeight();
+    expect(stdWeight).toBeCloseTo(1173.84, 2);
+    
+    // Phosphorylated oligo (5'-PO4, 3'-OH)
+    // Expect: 1235.8 + 18.02 = 1253.82
+    const phosWeight = seq.molecularWeight({ phosphorylated: true });
+    expect(phosWeight).toBeCloseTo(1253.82, 2);
   });
 });

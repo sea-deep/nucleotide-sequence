@@ -192,18 +192,36 @@ export class Seq {
 
   /**
    * Calculates the approximate molecular weight (mass) in Daltons (g/mol).
+   * 
+   * By default, this models a standard synthetic oligonucleotide (5'-OH, 3'-OH).
+   * To model a 5'-phosphorylated oligo, pass `{ phosphorylated: true }`.
+   * 
+   * Note: This calculates the single-stranded mass using standard IDT constants.
    */
-  public molecularWeight(): number {
+  public molecularWeight(options: { phosphorylated?: boolean } = {}): number {
     let mass = 0;
     for (let i = 0; i < this.data.length; i++) {
       const code = this.data[i];
-      if (code === 65) mass += 313.2; // A
-      else if (code === 84) mass += 304.2; // T
-      else if (code === 67) mass += 289.2; // C
-      else if (code === 71) mass += 329.2; // G
-      else if (code === 85) mass += 306.2; // U
+      if (code === 65) mass += 313.21; // A (dAMP residue)
+      else if (code === 84) mass += 304.20; // T (dTMP residue)
+      else if (code === 67) mass += 289.18; // C (dCMP residue)
+      else if (code === 71) mass += 329.21; // G (dGMP residue)
+      else if (code === 85) mass += 306.17; // U (UMP residue)
     }
-    return mass;
+
+    if (this.data.length === 0) return 0;
+
+    // The residue masses above inherently contain one phosphate per base.
+    // A standard linear oligo (5'-OH, 3'-OH) has one LESS phosphate than bases,
+    // plus two terminal hydroxyl/hydrogen atoms.
+    // Correction = + H2O (18.02) - PO3 (79.98) = -61.96
+    if (options.phosphorylated) {
+      // 5'-PO4, 3'-OH: Just add the H2O to cap the ends.
+      return mass + 18.02;
+    } else {
+      // 5'-OH, 3'-OH: Standard IDT formula
+      return mass - 61.96;
+    }
   }
 
   /**
@@ -235,6 +253,11 @@ export class Seq {
   /**
    * Parses a multi-record FASTA string.
    * Returns an array of objects containing the ID, description, and the parsed Seq object.
+   * 
+   * WARNING: This loads all sequences into an array of objects in memory. 
+   * The memory footprint scales linearly with the sequence size. This is optimal 
+   * for plasmids, amplicons, and viral databases, but unsuitable for 
+   * gigabyte-scale genomic assemblies.
    */
   public static readFASTA(data: string, type: SeqType = 'DNA'): { id: string, description: string, seq: Seq }[] {
     const records: { id: string, description: string, seq: Seq }[] = [];
@@ -397,13 +420,12 @@ export class Seq {
   }
 
   /**
-   * Scans the sequence for PAM (Protospacer Adjacent Motif) sites.
+   * Scans the sequence for structural PAM (Protospacer Adjacent Motif) sites.
    * Defaults to 'NGG' (SpCas9). Returns a list of 0-indexed positions where the PAM starts.
    * Supports standard IUPAC degenerate codes (N, R, Y, W, S).
    *
-   * Note: This finds PAM motif occurrences only. It does not predict CRISPR
-   * editing efficiency or off-target activity. For target prediction, extract
-   * the adjacent 20nt spacer and apply specificity scoring.
+   * Note: This finds structural PAM motif occurrences only. It does not predict CRISPR
+   * cleavage efficiency, chromatin accessibility, or off-target thermodynamics.
    */
   public findPAMSites(pam: string = 'NGG'): number[] {
     const regexStr = pam.toUpperCase()

@@ -91,13 +91,12 @@ export class Translation {
 
 
   /**
-   * Scans all 6 reading frames (3 forward, 3 reverse complement) for
-   * structural Open Reading Frames (ORFs).
-   *
-   * An ORF is defined as a sequence beginning with a start codon (ATG/M)
-   * and ending at a stop codon (*). This is a structural scan — most short
-   * ORFs in random sequence are spurious. The minCodons parameter filters
-   * out likely noise.
+   * Scans all 6 reading frames to find structural Open Reading Frames (ORFs).
+   * 
+   * Note: This strictly finds start-to-stop sequences. It does NOT predict
+   * biological translation viability (e.g., it ignores Ribosome Binding Sites 
+   * or Kozak consensus sequences), and scanning raw eukaryotic genomic DNA 
+   * will yield massive false positives due to introns.
    *
    * @param seq The input sequence to scan.
    * @param minCodons Minimum ORF length in codons (default: 100). Set to 0 to disable filtering.

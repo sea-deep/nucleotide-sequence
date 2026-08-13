@@ -26,6 +26,11 @@ export class MatchResult {
  * This is NOT sequence alignment. It does not use gap penalties,
  * substitution matrices, or dynamic programming. For gapped alignment,
  * use Smith-Waterman or Needleman-Wunsch.
+ * 
+ * WARNING: This performs a naive O(M x N) sliding window search. 
+ * It requires zero indexing overhead and is highly optimal for short queries 
+ * against amplicons, plasmids, and small viral genomes. It is computationally 
+ * intractable for gigabyte-scale alignments (e.g. mapping short reads to human).
  */
 export class SubstringSearch {
   private query: Seq;
