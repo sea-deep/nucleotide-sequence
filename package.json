@@ -45,6 +45,6 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "zeroworker": "file:../zeroworker"
+    "zeroworker": "^1.0.4"
   }
 }
