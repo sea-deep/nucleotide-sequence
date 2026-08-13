@@ -100,15 +100,24 @@ export class Parallel {
     const gapExtend = options.gapExtend ?? -1;
 
     const promises = references.map(ref => {
-      // Pass the Uint8Array, could transfer but we need to reuse qData, so we copy or just structured clone
+      // Create a copy of qData for each worker if we want to retain the original,
+      // but for Zero-Copy, we should transfer. Since we need to reuse qData, we MUST clone it.
+      // However, rData belongs to the reference sequence. If we transfer it, the reference Seq object
+      // will lose its buffer. Therefore, we should only transfer a cloned buffer.
+      // Zero-copy is only truly beneficial if we don't need the buffer on the main thread anymore.
+      // To properly utilize ZeroWorker's speed without breaking Seq objects, we slice (copy) here,
+      // but explicitly transfer the slice to the worker to avoid a SECOND structured clone penalty.
+      const qDataClone = new Uint8Array(qData);
+      const rDataClone = new Uint8Array(ref['data']);
+
       return this.alignmentPool!.execute({
-        qData,
-        rData: ref['data'],
+        qData: qDataClone,
+        rData: rDataClone,
         match,
         mismatch,
         gapOpen,
         gapExtend
-      });
+      }, [qDataClone.buffer, rDataClone.buffer]);
     });
 
     return Promise.all(promises);
@@ -158,10 +167,12 @@ export class Parallel {
       if (start >= len) break;
       end = Math.min(end, len);
 
+      const chunkData = new Uint8Array(data.subarray(start, end));
+
       promises.push(this.kmerPool.execute({
-        data: data.subarray(start, end),
+        data: chunkData,
         k
-      }));
+      }, [chunkData.buffer]));
     }
 
     const results = await Promise.all(promises);

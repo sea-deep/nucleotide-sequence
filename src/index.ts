@@ -7,6 +7,4 @@ export type { AlignmentResult, AlignmentOptions } from './Alignment';
 export { CrisprScoring } from './CrisprScoring';
 export type { CrisprTarget, OffTargetHit } from './CrisprScoring';
 export { Parallel } from './Parallel';
-export { SeedSearch, type HSP } from './Search';
-export { GenePrediction, type GeneModel } from './GenePrediction';
 export { FormatSAM, type SAMRecord } from './FormatSAM';
