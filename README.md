@@ -3,148 +3,75 @@
 [![NPM Version](https://img.shields.io/npm/v/nucleotide-sequence.svg)](https://www.npmjs.com/package/nucleotide-sequence)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**nucleotide-sequence** is a high-performance bioinformatics library written in TypeScript, providing sequence manipulation, analysis, and bitwise alignment mapping for Node.js and the browser.
+**nucleotide-sequence** is a modern, high-performance JavaScript/TypeScript library for working with DNA and RNA sequences. It provides standard bioinformatics operations including alignment, translation, CRISPR targeting, and thermodynamic properties.
 
-Built to handle large-scale genomic datasets, it utilizes `Uint8Array` memory structures to minimize overhead compared to traditional string-based approaches. The library features built-in support for FASTA/FASTQ parsing, CRISPR PAM scanning, K-mer extraction, and exhaustive degenerate nucleotide alignment.
+Built for both Node.js and the browser, the library operates internally on zero-copy `Uint8Array` data structures, minimizing V8 heap allocation and garbage collection pauses to process genomic data at exceptional speeds.
 
-
+**Note:** This is a utility library suitable for analyzing plasmids, viral genomes, amplicons, and individual genes. It is *not* designed for massive genome-scale indexing or millions-of-reads processing pipelines.
 
 ## 📦 Installation
-
-**nucleotide-sequence** is available on NPM:
 
 ```bash
 npm install nucleotide-sequence
 ```
 
-For browser environments, you can import it directly via ESM:
-
-```javascript
-import { Seq, MatchMap, Translation } from 'nucleotide-sequence';
-```
-
----
-
-## 📖 Quick Usage
+## 📖 Basic Usage
 
 ```typescript
-import { Seq, MatchMap, Translation } from 'nucleotide-sequence';
+import { Seq, Translation, Alignment } from 'nucleotide-sequence';
 
-// 1. Create and manipulate a sequence
-const seq = new Seq().read('ATGCATGC');
-const rna = seq.transcribe();
-console.log(rna.sequence()); // "AUGCAUGC"
+// 1. Initialize and read a sequence
+const dna = new Seq('DNA').read('ATGCGTACGTTAG');
 
-// 2. Parse a raw FASTQ file
-const fastq = `@SEQ_ID\nGATTTGGGGTTCAA\n+\n!''*((((***+))`;
-const rawSeq = new Seq().readFASTQ(fastq);
+// 2. Fast Reverse Complement
+const revComp = dna.reverseComplement();
+console.log(revComp.sequence());
 
-// 3. Find CRISPR Targets
-const crisprTargets = rawSeq.findCRISPRTargets('NGG');
-console.log(`Found SpCas9 cut sites at indices:`, crisprTargets);
+// 3. Translation to Amino Acids (NCBI Table 1)
+const protein = Translation.translate(dna);
 
-// 4. Extract K-mers for ML/Bloom Filters
-const kmers = seq.kmers(4); // ["ATGC", "TGCA", "GCAT", ...]
-
-// 5. High-Performance Alignment Mapping
-const reference = new Seq().read('ATGCCTGGATGC');
-const query = new Seq().read('ATGC');
-const map = new MatchMap(query, reference).initialize();
-
-// Get the absolute best match
-const bestMatch = map.best();
-console.log(`Matched at index ${bestMatch?.position} with ${bestMatch?.matches} exact matches!`);
+// 4. Pairwise Sequence Alignment (Smith-Waterman)
+const ref = new Seq().read('ATGCGTACGT');
+const result = Alignment.smithWaterman(dna, ref, { match: 2, mismatch: -1 });
+console.log(`Alignment Score: ${result.score}`);
 ```
 
----
+## 📚 API Reference
 
-## 📚 Library Reference
+### `Seq`
+The core class for wrapping and manipulating nucleotide sequences.
+- **`read(sequence: string)`**: Parses a string into a `Uint8Array` sequence, stripping whitespace automatically.
+- **`static readFASTA(content: string)`**: Parses a FASTA file and returns an array of `Seq` objects.
+- **`static readFASTQ(content: string)`**: Parses a FASTQ file and returns an array of `Seq` objects.
+- **`reverseComplement()`**: Returns a new `Seq` object containing the reverse complement, supporting all IUPAC degenerate bases.
+- **`kmers(k: number)`**: Returns a Generator yielding zero-copy `Uint8Array` subarrays for highly efficient k-mer iteration.
+- **`gcContent()`**: Computes the global GC percentage using a fast byte-lookup table.
+- **`gcSkew(windowSize?: number)`**: Calculates `(G-C)/(G+C)` across sliding windows to identify origins of replication.
+- **`hammingDistance(other: Seq)`**: Computes the Hamming distance between two sequences.
+- **`meltingTemperatureNN(dnaConcentration?, saltConcentration?)`**: Computes standard primer Melting Temperature (Tm) using the SantaLucia (1998) Nearest-Neighbor thermodynamic parameters.
 
-### `Seq` Class
+### `Translation`
+- **`static translate(seq: Seq, tableId?: number)`**: Translates a DNA/RNA sequence into an amino acid string using NCBI Translation Tables. Supports Standard (1), Vertebrate Mitochondrial (2), and Bacterial/Archaeal/Plant Plastid (11) by default.
+- **`static findOpenReadingFrames(seq: Seq, minLength?: number)`**: Scans all 6 reading frames to extract structural Open Reading Frames (ORFs).
 
-#### `new Seq(type?: 'DNA' | 'RNA')`
-Constructs a new sequence. Defaults to `'DNA'`.
+### `Alignment`
+- **`static smithWaterman(query: Seq, reference: Seq, options?: AlignmentOptions)`**: Performs local pairwise sequence alignment via dynamic programming and affine gap penalties.
+- **`static needlemanWunsch(query: Seq, reference: Seq, options?: AlignmentOptions)`**: Performs global pairwise sequence alignment via dynamic programming and affine gap penalties.
 
-#### `.read(data: string): this`
-Reads string data into the optimized `Uint8Array`. Automatically ignores whitespace and newlines.
+### `CrisprScoring`
+- **`static extractSpacers(seq: Seq, pam?: string, spacerLength?: number)`**: Identifies Protospacer Adjacent Motifs (PAMs) on both the forward and reverse strands, extracting the adjacent spacer sequences and calculating their coordinates and GC bounds.
 
-#### `.readFASTA(fastaData: string): this`
-Parses a standard `.fasta` file, stripping headers and extracting the raw sequence.
+### `SubstringSearch`
+- **`constructor(query: Seq, reference: Seq)`**: Initializes an exact substring search tool.
+- **`top(limit?: number)`**: Returns the top ungapped alignments, tolerant to `N` wildcards.
 
-#### `.readFASTQ(fastqData: string): this`
-Parses raw output from modern sequencers, extracting the sequence while discarding the quality scores for memory efficiency.
+### `Parallel`
+*Requires the optional peer dependency `zeroworker`.*
+- **`static align(query: Seq, references: Seq[], options?: AlignmentOptions)`**: Distributes pairwise alignments across a multithreaded Web Worker pool.
+- **`static kmerCount(seq: Seq, k: number)`**: Performs parallelized k-mer counting.
 
-#### `.sequence(): string`
-Returns the nucleotide sequence as a standard string.
-
-#### `.complement(): Seq`
-Returns a new `Seq` object containing the 5' -> 3' complement. Properly handles RNA and DNA degenerate nucleotides.
-
-#### `.transcribe(): Seq`
-Returns a new `Seq` of type `'RNA'` (converts `T` to `U`).
-
-#### `.reverseTranscribe(): Seq`
-Returns a new `Seq` of type `'DNA'` (converts `U` to `T`).
-
-#### `.splice(start: number, deleteCount: number = 0, insertSeq?: Seq): Seq`
-A highly efficient typed array mutation function. Removes/replaces nucleotides and/or adds new nucleotides in place, returning a new immutable `Seq`.
-
-#### `.gcContent(): number`
-Returns the percentage of G and C nucleotides in the sequence (0.0 to 1.0).
-
-#### `.meltingTemperature(): number`
-Calculates the Wallace Rule melting temperature (Tm) for PCR primers.
-
-#### `.molecularWeight(): number`
-Calculates the physical mass of the sequence in Daltons (g/mol).
-
-#### `.kmers(k: number): string[]`
-Extracts all overlapping K-mers of length `k`. Essential for ML tokenization and alignment building.
-
-#### `.findCRISPRTargets(pam: string = 'NGG'): number[]`
-Scans the genome for CRISPR PAM (Protospacer Adjacent Motif) target sites. Returns an array of 0-indexed positions where the PAM starts. Supports standard IUPAC degenerate codes.
-
----
-
-### `Translation` Engine
-
-#### `Translation.translate(seq: Seq): string`
-Translates a DNA or RNA sequence into its corresponding Amino Acid string using the standard biological codon table. Unrecognized/degenerate codons are returned as `?`.
-
-#### `Translation.translateFrame(seq: Seq, frame: number): string`
-Translates the sequence starting from a specific reading frame (0, 1, or 2).
-
-#### `Translation.findOpenReadingFrames(seq: Seq): string[]`
-Scans all 6 reading frames (3 forward, 3 reverse complement) to extract valid hidden proteins. It searches for sequences that start with Methionine (`M`) and end with a Stop Codon (`*`).
-
----
-
-### `MatchMap` Algorithm
-
-The MatchMap algorithm provides a highly optimized sliding-window exhaustive bitwise alignment.
-
-#### `new MatchMap(query: Seq, reference: Seq)`
-Initializes the engine to search for the `query` inside the massive `reference` genome.
-
-#### `.initialize(): this`
-Executes the alignment map.
-
-#### `.best(): MatchResult | null`
-Returns the single best alignment match.
-
-#### `.top(maxResults: number): MatchResult[]`
-Returns the top `N` alignments, sorted by the highest number of matches.
-
----
-
-### `MatchResult` Class
-Returned by the `MatchMap` queries.
-
-- `.position`: The 0-indexed alignment position in the reference sequence.
-- `.matches`: The number of successful matches (including `N` wildcards).
-- `.alignment()`: Returns a new `Seq` containing the exactly matched portion of the reference sequence.
-
----
+## 🐛 Feedback & Contributions
+This project is open-source. If you find bugs or have feature requests, please open an issue on GitHub.
 
 ## 📄 License
 MIT License
