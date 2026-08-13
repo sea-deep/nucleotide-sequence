@@ -17,19 +17,7 @@ export interface OffTargetHit {
   cfdScore: number; // 0.0 to 1.0
 }
 
-/**
- * Static CFD weights for mismatches.
- * Rows: Position 1 to 20.
- * Cols: Mismatch type (e.g., rA:dC, rA:dG, etc.)
- * Simplified representative matrix for SpCas9 based on Doench et al.
- */
-const CFD_WEIGHTS: Record<number, Record<string, number>> = {
-  // Pos 1-20 (5' to 3')
-  1:  { 'rA:dC': 1.0, 'rA:dG': 1.0, 'rA:dT': 1.0, 'rC:dA': 1.0, 'rC:dG': 1.0, 'rC:dT': 1.0, 'rG:dA': 1.0, 'rG:dC': 1.0, 'rG:dT': 1.0, 'rU:dA': 1.0, 'rU:dC': 1.0, 'rU:dG': 1.0 },
-  // ... omitting full 20x12 matrix for brevity, using positional penalties
-  // Positions closer to PAM (18-20) are penalized heavily (score ~0.1)
-  // Positions far from PAM (1-5) are penalized lightly (score ~0.9)
-};
+
 
 // Simplified positional weight matrix for On-Target scoring (Rule Set 2 proxy)
 // Weights for A, C, G, T at positions 1-20

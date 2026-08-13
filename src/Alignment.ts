@@ -92,8 +92,6 @@ export class Alignment {
     while (i > 0 && j > 0 && H[i * (n + 1) + j] > 0) {
       const idx = i * (n + 1) + j;
       const diagIdx = (i - 1) * (n + 1) + (j - 1);
-      const upIdx = (i - 1) * (n + 1) + j;
-      const leftIdx = i * (n + 1) + (j - 1);
 
       const s = qStr[i - 1] === rStr[j - 1] ? match : mismatch;
 

@@ -57,8 +57,6 @@ export class Parallel {
         while (i > 0 && j > 0 && H[i * (n + 1) + j] > 0) {
           const idx = i * (n + 1) + j;
           const diagIdx = (i - 1) * (n + 1) + (j - 1);
-          const upIdx = (i - 1) * (n + 1) + j;
-          const leftIdx = i * (n + 1) + (j - 1);
 
           const s = qData[i - 1] === rData[j - 1] ? match : mismatch;
 
@@ -117,7 +115,7 @@ export class Parallel {
         mismatch,
         gapOpen,
         gapExtend
-      }, [qDataClone.buffer, rDataClone.buffer]);
+      }, { transferables: [qDataClone.buffer, rDataClone.buffer] });
     });
 
     return Promise.all(promises);
@@ -172,7 +170,7 @@ export class Parallel {
       promises.push(this.kmerPool.execute({
         data: chunkData,
         k
-      }, [chunkData.buffer]));
+      }, { transferables: [chunkData.buffer] }));
     }
 
     const results = await Promise.all(promises);
