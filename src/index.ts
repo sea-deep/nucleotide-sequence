@@ -1,4 +1,12 @@
 export { Seq } from './Seq';
 export type { SeqType } from './Seq';
-export { Translation, CODON_TABLE } from './Translation';
-export { MatchMap } from './MatchMap';
+export { Translation, TRANSLATION_TABLES } from './Translation';
+export { SubstringSearch, MatchResult } from './SubstringSearch';
+export { Alignment } from './Alignment';
+export type { AlignmentResult, AlignmentOptions } from './Alignment';
+export { CrisprScoring } from './CrisprScoring';
+export type { CrisprTarget, OffTargetHit } from './CrisprScoring';
+export { Parallel } from './Parallel';
+export { SeedSearch, type HSP } from './Search';
+export { GenePrediction, type GeneModel } from './GenePrediction';
+export { FormatSAM, type SAMRecord } from './FormatSAM';

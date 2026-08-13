@@ -1,92 +1,122 @@
-/**
- * The standard genetic code translation table.
- * Maps DNA codons (3 nucleotides) to Amino Acids.
- */
-export const CODON_TABLE: Record<string, string> = {
-  // Phenylalanine
-  TTT: 'F', TTC: 'F',
-  // Leucine
-  TTA: 'L', TTG: 'L', CTT: 'L', CTC: 'L', CTA: 'L', CTG: 'L',
-  // Isoleucine
-  ATT: 'I', ATC: 'I', ATA: 'I',
-  // Methionine (Start)
-  ATG: 'M',
-  // Valine
-  GTT: 'V', GTC: 'V', GTA: 'V', GTG: 'V',
-  // Serine
-  TCT: 'S', TCC: 'S', TCA: 'S', TCG: 'S', AGT: 'S', AGC: 'S',
-  // Proline
-  CCT: 'P', CCC: 'P', CCA: 'P', CCG: 'P',
-  // Threonine
-  ACT: 'T', ACC: 'T', ACA: 'T', ACG: 'T',
-  // Alanine
-  GCT: 'A', GCC: 'A', GCA: 'A', GCG: 'A',
-  // Tyrosine
-  TAT: 'Y', TAC: 'Y',
-  // Stop Codons
-  TAA: '*', TAG: '*', TGA: '*',
-  // Histidine
-  CAT: 'H', CAC: 'H',
-  // Glutamine
-  CAA: 'Q', CAG: 'Q',
-  // Asparagine
-  AAT: 'N', AAC: 'N',
-  // Lysine
-  AAA: 'K', AAG: 'K',
-  // Aspartic Acid
-  GAT: 'D', GAC: 'D',
-  // Glutamic Acid
-  GAA: 'E', GAG: 'E',
-  // Cysteine
-  TGT: 'C', TGC: 'C',
-  // Tryptophan
-  TGG: 'W',
-  // Arginine
-  CGT: 'R', CGC: 'R', CGA: 'R', CGG: 'R', AGA: 'R', AGG: 'R',
-  // Glycine
-  GGT: 'G', GGC: 'G', GGA: 'G', GGG: 'G',
-};
-
 import { Seq } from './Seq';
+
+export const TRANSLATION_TABLES: Record<number, Record<string, string>> = {
+  // Table 1: Standard
+  1: {
+    'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
+    'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
+    'AAC': 'N', 'AAT': 'N', 'AAA': 'K', 'AAG': 'K',
+    'AGC': 'S', 'AGT': 'S', 'AGA': 'R', 'AGG': 'R',
+    'CTA': 'L', 'CTC': 'L', 'CTG': 'L', 'CTT': 'L',
+    'CCA': 'P', 'CCC': 'P', 'CCG': 'P', 'CCT': 'P',
+    'CAC': 'H', 'CAT': 'H', 'CAA': 'Q', 'CAG': 'Q',
+    'CGA': 'R', 'CGC': 'R', 'CGG': 'R', 'CGT': 'R',
+    'GTA': 'V', 'GTC': 'V', 'GTG': 'V', 'GTT': 'V',
+    'GCA': 'A', 'GCC': 'A', 'GCG': 'A', 'GCT': 'A',
+    'GAC': 'D', 'GAT': 'D', 'GAA': 'E', 'GAG': 'E',
+    'GGA': 'G', 'GGC': 'G', 'GGG': 'G', 'GGT': 'G',
+    'TCA': 'S', 'TCC': 'S', 'TCG': 'S', 'TCT': 'S',
+    'TTC': 'F', 'TTT': 'F', 'TTA': 'L', 'TTG': 'L',
+    'TAC': 'Y', 'TAT': 'Y', 'TAA': '*', 'TAG': '*',
+    'TGC': 'C', 'TGT': 'C', 'TGA': '*', 'TGG': 'W',
+  },
+  // Table 2: Vertebrate Mitochondrial
+  2: {
+    'ATA': 'M', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
+    'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
+    'AAC': 'N', 'AAT': 'N', 'AAA': 'K', 'AAG': 'K',
+    'AGC': 'S', 'AGT': 'S', 'AGA': '*', 'AGG': '*',
+    'CTA': 'L', 'CTC': 'L', 'CTG': 'L', 'CTT': 'L',
+    'CCA': 'P', 'CCC': 'P', 'CCG': 'P', 'CCT': 'P',
+    'CAC': 'H', 'CAT': 'H', 'CAA': 'Q', 'CAG': 'Q',
+    'CGA': 'R', 'CGC': 'R', 'CGG': 'R', 'CGT': 'R',
+    'GTA': 'V', 'GTC': 'V', 'GTG': 'V', 'GTT': 'V',
+    'GCA': 'A', 'GCC': 'A', 'GCG': 'A', 'GCT': 'A',
+    'GAC': 'D', 'GAT': 'D', 'GAA': 'E', 'GAG': 'E',
+    'GGA': 'G', 'GGC': 'G', 'GGG': 'G', 'GGT': 'G',
+    'TCA': 'S', 'TCC': 'S', 'TCG': 'S', 'TCT': 'S',
+    'TTC': 'F', 'TTT': 'F', 'TTA': 'L', 'TTG': 'L',
+    'TAC': 'Y', 'TAT': 'Y', 'TAA': '*', 'TAG': '*',
+    'TGC': 'C', 'TGT': 'C', 'TGA': 'W', 'TGG': 'W',
+  },
+  // Table 11: Bacterial, Archaeal and Plant Plastid
+  11: {
+    'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
+    'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
+    'AAC': 'N', 'AAT': 'N', 'AAA': 'K', 'AAG': 'K',
+    'AGC': 'S', 'AGT': 'S', 'AGA': 'R', 'AGG': 'R',
+    'CTA': 'L', 'CTC': 'L', 'CTG': 'L', 'CTT': 'L',
+    'CCA': 'P', 'CCC': 'P', 'CCG': 'P', 'CCT': 'P',
+    'CAC': 'H', 'CAT': 'H', 'CAA': 'Q', 'CAG': 'Q',
+    'CGA': 'R', 'CGC': 'R', 'CGG': 'R', 'CGT': 'R',
+    'GTA': 'V', 'GTC': 'V', 'GTG': 'V', 'GTT': 'V',
+    'GCA': 'A', 'GCC': 'A', 'GCG': 'A', 'GCT': 'A',
+    'GAC': 'D', 'GAT': 'D', 'GAA': 'E', 'GAG': 'E',
+    'GGA': 'G', 'GGC': 'G', 'GGG': 'G', 'GGT': 'G',
+    'TCA': 'S', 'TCC': 'S', 'TCG': 'S', 'TCT': 'S',
+    'TTC': 'F', 'TTT': 'F', 'TTA': 'L', 'TTG': 'L',
+    'TAC': 'Y', 'TAT': 'Y', 'TAA': '*', 'TAG': '*',
+    'TGC': 'C', 'TGT': 'C', 'TGA': '*', 'TGG': 'W',
+  }
+};
 
 export class Translation {
   /**
-   * Translates a sequence starting from a specific frame (0, 1, or 2).
+   * Translates a nucleotide sequence into an amino acid sequence.
+   * By default uses NCBI Translation Table 1 (Standard).
+   * Note: RNA sequences are internally converted (U->T) for codon lookup.
    */
-  public static translateFrame(seq: Seq, frame: number = 0): string {
-    const sequenceStr = seq.sequence().toUpperCase();
-    const normalizedSeq = seq.type === 'RNA' ? sequenceStr.replace(/U/g, 'T') : sequenceStr;
+  public static translate(seq: Seq, tableId: number = 1): string {
+    return this.translateFrame(seq, 0, tableId);
+  }
+
+  /**
+   * Translates a sequence starting from a specific frame offset (0, 1, or 2).
+   */
+  public static translateFrame(seq: Seq, frame: number = 0, tableId: number = 1): string {
+    const table = TRANSLATION_TABLES[tableId];
+    if (!table) {
+      throw new Error(`Unsupported translation table ID: ${tableId}`);
+    }
+
+    const seqStr = seq.sequence().toUpperCase();
     
     let protein = '';
-    for (let i = frame; i < normalizedSeq.length - 2; i += 3) {
-      const codon = normalizedSeq.slice(i, i + 3);
-      protein += CODON_TABLE[codon] || '?';
+    for (let i = frame; i < seqStr.length - 2; i += 3) {
+      const codon = seqStr.substring(i, i + 3).replace(/U/g, 'T');
+      protein += table[codon] || '?'; // Use ? for ambiguous/degenerate codons
     }
     return protein;
   }
 
-  /**
-   * Translates a DNA/RNA sequence into an Amino Acid protein sequence.
-   * Note: This strictly translates frame 0.
-   */
-  public static translate(seq: Seq): string {
-    return this.translateFrame(seq, 0);
-  }
 
   /**
-   * Scans all 6 reading frames (3 forward, 3 reverse complement) for Open Reading Frames (ORFs).
-   * Finds sequences that start with Methionine (M) and end with a Stop Codon (*).
+   * Scans all 6 reading frames (3 forward, 3 reverse complement) for
+   * structural Open Reading Frames (ORFs).
+   *
+   * An ORF is defined as a sequence beginning with a start codon (ATG/M)
+   * and ending at a stop codon (*). This is a structural scan — most short
+   * ORFs in random sequence are spurious. The minCodons parameter filters
+   * out likely noise.
+   *
+   * @param seq The input sequence to scan.
+   * @param minCodons Minimum ORF length in codons (default: 100). Set to 0 to disable filtering.
+   * @param tableId Translation table to use (default: 1).
    */
-  public static findOpenReadingFrames(seq: Seq): string[] {
+  public static findOpenReadingFrames(seq: Seq, minCodons: number = 100, tableId: number = 1): string[] {
     const proteins: string[] = [];
-    const orfRegex = /M[^*]*\*/g; // M followed by anything except *, ending with *
     
     const findInSeq = (s: Seq) => {
       for (let frame = 0; frame < 3; frame++) {
-        const translated = this.translateFrame(s, frame);
+        const translated = this.translateFrame(s, frame, tableId);
+        // Create a fresh regex per iteration to avoid stale lastIndex state
+        const orfRegex = /M[^*]*\*/g;
         let match;
         while ((match = orfRegex.exec(translated)) !== null) {
-          proteins.push(match[0].slice(0, -1)); // Remove the * stop codon from the output string
+          const orf = match[0].slice(0, -1); // Remove the * stop codon
+          if (orf.length >= minCodons) {
+            proteins.push(orf);
+          }
         }
       }
     };
@@ -94,11 +124,9 @@ export class Translation {
     // Forward strand
     findInSeq(seq);
     
-    // Reverse complement strand
-    const compData = seq.complement().sequence();
-    const revCompData = compData.split('').reverse().join('');
-    const revSeq = new Seq(seq.type).read(revCompData);
-    findInSeq(revSeq);
+    // Reverse complement strand (now correctly handles IUPAC codes)
+    const revCompSeq = seq.reverseComplement();
+    findInSeq(revCompSeq);
     
     return proteins;
   }

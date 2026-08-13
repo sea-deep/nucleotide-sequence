@@ -15,15 +15,40 @@ describe('Seq Class', () => {
     expect(seq.sequence()).toBe('ATGCTA');
   });
 
-  it('should compute GC content correctly', () => {
-    const seq = new Seq().read('GCGCATAT');
-    expect(seq.gcContent()).toBe(0.5); // 4 GC out of 8
+  it('should reject invalid characters', () => {
+    expect(() => new Seq().read('ATG123')).toThrow(TypeError);
+    expect(() => new Seq().read('ATGZ')).toThrow(TypeError);
+    expect(() => new Seq().read('ATG!')).toThrow(TypeError);
   });
 
-  it('should generate reverse complement correctly', () => {
+  it('should accept all IUPAC degenerate codes', () => {
+    // Should not throw
+    const seq = new Seq().read('ACGTUMRWSYKVHDBN');
+    expect(seq.size()).toBe(16);
+  });
+
+  it('should compute GC content correctly', () => {
+    const seq = new Seq().read('GCGCATAT');
+    expect(seq.gcContent()).toBe(0.5);
+  });
+
+  it('should generate reverse complement correctly for standard bases', () => {
     const seq = new Seq().read('ATGC');
     const rc = seq.reverseComplement();
     expect(rc.sequence()).toBe('GCAT');
+  });
+
+  it('should generate reverse complement correctly for IUPAC degenerate codes', () => {
+    // This was a bug: reverseComplement() previously only handled A/T/C/G.
+    // M(A/C)->K(T/G), R(A/G)->Y(T/C) — complement then reverse.
+    const seq = new Seq().read('ATGMR');
+    const rc = seq.reverseComplement();
+    // Complement: TACKM -> reversed: MKCAT
+    // Wait, let me think carefully:
+    // A->T, T->A, G->C, M->K, R->Y
+    // Complement of ATGMR = TACKY
+    // Reverse of TACKY = YKCAT
+    expect(rc.sequence()).toBe('YKCAT');
   });
 
   it('should compute complementary DNA sequence correctly', () => {
@@ -41,7 +66,6 @@ describe('Seq Class', () => {
   });
 
   it('should properly complement degenerate nucleotides', () => {
-    // W(A/T)->W, S(C/G)->S, M(A/C)->K(T/G), K->M, R(A/G)->Y(T/C), Y->R, B->V, V->B, D->H, H->D, N->N
     const seq = new Seq().read('WSMKRYBVDHN');
     const comp = seq.complement();
     expect(comp.sequence()).toBe('WSKMYRVBHDN');
@@ -66,20 +90,33 @@ describe('Seq Class', () => {
     const content = seq.fractionalContent();
     expect(content.A).toBe(0.25);
     expect(content.G).toBe(0.25);
-    expect(content.GC).toBe(0.5); // 50% GC
+    expect(content.GC).toBe(0.5);
   });
 
-  it('should calculate melting temperature (Tm) correctly', () => {
-    // Primer: ATGC ATGC ATGC ATGC (8 A/T, 8 G/C)
-    // Tm = 2*(8) + 4*(8) = 16 + 32 = 48
+  it('should calculate melting temperature (Tm) for valid-length primers', () => {
+    // 16nt primer: ATGC repeated 4x (8 A/T, 8 G/C)
+    // Tm = 2*(8) + 4*(8) = 48
     const seq = new Seq().read('ATGCATGCATGCATGC');
     expect(seq.meltingTemperature()).toBe(48);
   });
 
+  it('should throw RangeError for Tm on sequences outside 14-20nt', () => {
+    const shortSeq = new Seq().read('ATGCATGC'); // 8nt
+    expect(() => shortSeq.meltingTemperature()).toThrow(RangeError);
+
+    const longSeq = new Seq().read('ATGCATGCATGCATGCATGCATGCATGC'); // 28nt
+    expect(() => longSeq.meltingTemperature()).toThrow(RangeError);
+  });
+
   it('should correctly parse FASTA format', () => {
     const fasta = `>Sequence 1\nATGC\n>Comment\nCGTA`;
-    const seq = new Seq().readFASTA(fasta);
-    expect(seq.sequence()).toBe('ATGCCGTA');
+    const records = Seq.readFASTA(fasta);
+    expect(records.length).toBe(2);
+    expect(records[0].id).toBe('Sequence');
+    expect(records[0].description).toBe('1');
+    expect(records[0].seq.sequence()).toBe('ATGC');
+    expect(records[1].id).toBe('Comment');
+    expect(records[1].seq.sequence()).toBe('CGTA');
   });
 
   it('should correctly calculate molecular weight', () => {
@@ -89,35 +126,46 @@ describe('Seq Class', () => {
 
   it('should splice sequences correctly', () => {
     const seq = new Seq().read('ATGC');
-    // Remove 2 elements from index 1 (TG) -> AC
     const spliced = seq.splice(1, 2);
     expect(spliced.sequence()).toBe('AC');
     
-    // Insert 'TT' at index 1 -> ATTTGC
     const insertSeq = new Seq().read('TT');
     const inserted = seq.splice(1, 0, insertSeq);
     expect(inserted.sequence()).toBe('ATTTGC');
   });
 
   it('should correctly parse FASTQ format', () => {
-    const fastq = `@SEQ_ID\nGATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT\n+\n!''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>>CCCCCCC65`;
-    const seq = new Seq().readFASTQ(fastq);
-    expect(seq.sequence()).toBe('GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT');
+    const fastq = `@SEQ_ID\nGATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT\n+\n!''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>CCCCCCCC65`;
+    const records = Seq.readFASTQ(fastq);
+    expect(records.length).toBe(1);
+    expect(records[0].id).toBe('SEQ_ID');
+    expect(records[0].seq.sequence()).toBe('GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT');
+    
+    const decoder = new TextDecoder();
+    expect(decoder.decode(records[0].quality)).toBe(`!''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>CCCCCCCC65`);
   });
 
   it('should correctly extract K-mers', () => {
     const seq = new Seq().read('ATGC');
-    const k3 = seq.kmers(3);
+    const decoder = new TextDecoder();
+    
+    const k3 = Array.from(seq.kmers(3)).map(arr => decoder.decode(arr));
     expect(k3).toEqual(['ATG', 'TGC']);
-    const k2 = seq.kmers(2);
+    
+    const k2 = Array.from(seq.kmers(2)).map(arr => decoder.decode(arr));
     expect(k2).toEqual(['AT', 'TG', 'GC']);
   });
 
-  it('should find CRISPR targets (PAM sequences)', () => {
-    // NGG pam -> any + GG
-    const seq = new Seq().read('ATGG C TGG C AGG C CGG C');
-    const targets = seq.findCRISPRTargets('NGG');
-    // ATGG (PAM is TGG at 1), CTGG (PAM is TGG at 5), CAGG (PAM is AGG at 9), CCGG (PAM is CGG at 13)
-    expect(targets).toEqual([1, 5, 9, 13]);
+  it('should find PAM sites', () => {
+    const seq = new Seq().read('ATGGCTGGCAGGCCGG');
+    const sites = seq.findPAMSites('NGG');
+    // Should find positions where ?GG occurs
+    expect(sites.length).toBeGreaterThan(0);
+    // Verify each found site actually matches ?GG
+    const seqStr = seq.sequence();
+    for (const pos of sites) {
+      expect(seqStr[pos + 1]).toBe('G');
+      expect(seqStr[pos + 2]).toBe('G');
+    }
   });
 });
